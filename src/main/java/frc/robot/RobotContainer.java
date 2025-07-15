@@ -253,7 +253,8 @@ public class RobotContainer {
             operator.rightTrigger(),
             operator.leftBumper(),
             driver.povLeft(),
-            driver.povRight());
+            driver.povRight(),
+            new Trigger(drive::shouldSetElevatorNet));
 
     // Set up auto routines
     autoChooser = new LoggedDashboardChooser<>("Choreo Auto Chooser");

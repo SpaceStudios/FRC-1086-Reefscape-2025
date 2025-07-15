@@ -121,6 +121,9 @@ public class Superstructure {
   @AutoLogOutput(key = "Superstructure/Reverse Funnel Request")
   private final Trigger revFunnelRequest;
 
+  @AutoLogOutput(key = "Superstructure/Automatically Set Elevator To Net")
+  private final Trigger setElevatorNet;
+
   @AutoLogOutput(key = "Superstructure/State")
   private State state = State.IDLE;
 
@@ -245,7 +248,8 @@ public class Superstructure {
       Trigger elevManualRequest,
       Trigger superstructureCoastRequest,
       Trigger cancelRequest,
-      Trigger revFunnelRequest) {
+      Trigger revFunnelRequest,
+      Trigger setElevatorNet) {
     this.hopper = hopper;
     this.elevator = elevator;
     this.outtake = outtake;
@@ -276,6 +280,7 @@ public class Superstructure {
     this.superstructureCoastRequest = superstructureCoastRequest;
     this.cancelRequest = cancelRequest;
     this.revFunnelRequest = revFunnelRequest;
+    this.setElevatorNet = setElevatorNet;
 
     this.algaeTarget = ElevatorConstants.A3;
 
@@ -341,6 +346,13 @@ public class Superstructure {
             Commands.parallel(
                 led.setState(State.CORAL_PREINTAKE), this.forceState(State.CORAL_PREINTAKE)));
 
+    setElevatorNet
+    .and(stateTriggers.get(State.ALGAE_READY).or(new Trigger(gripper::getDetected)))
+    .onTrue(
+        Commands.parallel(
+            elevator.setExtension(ElevatorConstants.AN),
+            this.forceState(State.ELEV_MANUAL)));
+    
     stateTriggers
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
@@ -747,6 +759,14 @@ public class Superstructure {
           .get(State.ALGAE_CONFIRM_AN)
           .and(scoreRequest)
           .onTrue(Commands.sequence(Commands.waitSeconds(0.5), gripper.setSimDetected(false)));
+        
+        stateTriggers
+            .get(State.ELEV_MANUAL)
+            .and(setElevatorNet.negate())
+            .and(new Trigger(()-> (elevator.getTargetExtensionMeters() == ElevatorConstants.AN)))
+            .onTrue(
+                elevator.setExtension(ElevatorConstants.L1)
+            );
     }
   }
 
