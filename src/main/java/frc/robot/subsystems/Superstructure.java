@@ -672,15 +672,15 @@ public class Superstructure {
                 led.setState(State.ALGAE_CONFIRM_AP),
                 this.forceState(State.ALGAE_CONFIRM_AP)));
                
-    stateTriggers
-        .get(State.ALGAE_CONFIRM_AN)
-        .or(stateTriggers.get(State.ALGAE_CONFIRM_AN))
+    scoreRequest
+        .and(stateTriggers.get(State.ALGAE_READY).or(stateTriggers.get(State.ALGAE_CONFIRM_AN)))
+        .or(gripper::getDetected)
         .and(setElevatorNet)
-        .and(scoreRequest)
         .whileTrue(
             Commands.sequence(
                 elevator.setExtension(ElevatorConstants.AN).until(elevator::isNearExtension),
-                gripper.setVoltage(GripperConstants.AN).withTimeout(0.5)
+                gripper.setVoltage(GripperConstants.AN).withTimeout(0.5),
+                this.forceState(State.IDLE)
             )
         );
 
