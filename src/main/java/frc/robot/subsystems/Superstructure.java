@@ -347,11 +347,12 @@ public class Superstructure {
                 led.setState(State.CORAL_PREINTAKE), this.forceState(State.CORAL_PREINTAKE)));
 
     setElevatorNet
-    .and(stateTriggers.get(State.ALGAE_READY).or(new Trigger(gripper::getDetected)))
-    .onTrue(
-        Commands.parallel(
-            elevator.setExtension(ElevatorConstants.AN),
-            this.forceState(State.ELEV_MANUAL)));
+        .and(stateTriggers.get(State.ALGAE_READY).or(gripper::getDetected))
+        .whileTrue(
+            Commands.run(
+                () -> {led.strobe(Color.kPurple, Color.kOrange, 0.1);}
+            )
+        );
     
     stateTriggers
         .get(State.ELEV_MANUAL)

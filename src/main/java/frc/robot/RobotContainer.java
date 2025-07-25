@@ -352,8 +352,8 @@ public class RobotContainer {
                           Pose2d selected =
                               AllianceFlipUtil.apply(
                                   (driver.leftBumper().getAsBoolean())
-                                      ? (Reef.robotLeft[bestFace])
-                                      : Reef.robotRight[bestFace]);
+                                      ? ((bestFace >= 2 && bestFace <= 4) ? Reef.robotLeft[bestFace] : Reef.robotRight[bestFace])
+                                      : (bestFace >= 2 && bestFace <= 4) ? Reef.robotRight[bestFace] : Reef.robotLeft[bestFace]);
                           Logger.recordOutput("AutoAlign/Active", selected);
                           return selected;
                         },
