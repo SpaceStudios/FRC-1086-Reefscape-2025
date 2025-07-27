@@ -227,6 +227,10 @@ public class Superstructure {
                   2,
                   new Color8Bit(Color.kLightBlue)));
 
+
+    // Animations
+    private final Animation autoAlignTolerance = new StrobeAnimation((int) Color.kLimeGreen.red * 255, (int) Color.kLimeGreen.green * 255, (int) Color.kLimeGreen.blue * 255);
+    private final Animation elevatorNet = new StrobeAnimation((int) Color.kPurple.red*255,(int) Color.kPurple.green*255,(int) Color.kPurple.blue*255);
   public Superstructure(
       Hopper hopper,
       Elevator elevator,
@@ -305,7 +309,7 @@ public class Superstructure {
     autoAlignInTolerance
         .whileTrue(
             Commands.run(() -> {
-                led.set(new StrobeAnimation((int) Color.kLimeGreen.red * 255, (int) Color.kLimeGreen.green * 255, (int) Color.kLimeGreen.blue * 255));
+                led.set(autoAlignTolerance);
             })
         );
 
@@ -366,7 +370,7 @@ public class Superstructure {
         .whileTrue(
             Commands.run(
                 () -> {
-                    led.set(new StrobeAnimation((int) Color.kPurple.red*255,(int) Color.kPurple.green*255,(int) Color.kPurple.blue*255));
+                    led.set(elevatorNet);
                 }
             )
         );
@@ -794,7 +798,7 @@ public class Superstructure {
         stateTriggers
             .get(State.ELEV_MANUAL)
             .and(setElevatorNet.negate())
-            .and(new Trigger(()-> (elevator.getTargetExtensionMeters() == ElevatorConstants.AN)))
+            .and(()->(elevator.getTargetExtensionMeters() == ElevatorConstants.AN))
             .onTrue(
                 elevator.setExtension(ElevatorConstants.L1)
             );
