@@ -19,12 +19,16 @@ import frc.robot.FieldConstants.CoralStation;
 import frc.robot.FieldConstants.Reef;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.util.AllianceFlipUtil;
+
 import java.util.Arrays;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class AutoAlign {
+
+  private static Target currentTarget;
+  private static Boolean setLEDs;
 
   public static Pose2d getBestLoader(Pose2d currentPose) {
     Pose2d loader =
@@ -272,6 +276,7 @@ public class AutoAlign {
             && MathUtil.isNear(
                 0.0, diff.getRotation().getRadians(), AutoAlignConstants.angularTolerance);
     Logger.recordOutput("AutoAlign/isInTolerance", threshold);
+    setLEDs = (threshold && currentTarget == Target.Reef);
     return threshold;
   }
 
@@ -313,6 +318,11 @@ public class AutoAlign {
     SOURCE
   }
 
+  public static enum Target {
+    Reef,
+    Source
+  }
+
   public static IntakeLocation closerIntake(Pose2d pose, double x, double y) {
     Pose2d nearestReef = AllianceFlipUtil.apply(Reef.centerFaces[getBestFace(pose, x, y)]);
     Pose2d nearestSource = getBestLoader(pose);
@@ -323,5 +333,13 @@ public class AutoAlign {
         distanceToReef <= distanceToSource ? IntakeLocation.REEF : IntakeLocation.SOURCE;
     Logger.recordOutput("AutoAlign/CloserIntake", closest);
     return closest;
+  }
+
+  public static void setTarget(Target target) {
+    currentTarget = target;
+  }
+
+  public static Boolean setLED() {
+    return setLEDs;
   }
 }

@@ -38,6 +38,9 @@ import org.littletonrobotics.junction.mechanism.LoggedMechanism2d;
 import org.littletonrobotics.junction.mechanism.LoggedMechanismLigament2d;
 import org.littletonrobotics.junction.mechanism.LoggedMechanismRoot2d;
 
+import com.ctre.phoenix.led.Animation;
+import com.ctre.phoenix.led.StrobeAnimation;
+
 public class Superstructure {
   public static enum CoralTarget {
     IDLE(0, 0),
@@ -124,9 +127,12 @@ public class Superstructure {
   @AutoLogOutput(key = "Superstructure/Automatically Set Elevator To Net")
   private final Trigger setElevatorNet;
 
+  @AutoLogOutput(key = "Superstructure/Auto Align is within Toleran")
+  private final Trigger autoAlignInTolerance;
+
   @AutoLogOutput(key = "Superstructure/State")
   private State state = State.IDLE;
-
+  
   private State prevState = State.IDLE;
 
   private Map<State, Trigger> stateTriggers = new HashMap<State, Trigger>();
@@ -294,6 +300,15 @@ public class Superstructure {
       stateTriggers.put(state, new Trigger(() -> this.state == state && DriverStation.isEnabled()));
     }
 
+    autoAlignInTolerance = new Trigger(AutoAlign::setLED);
+
+    autoAlignInTolerance
+        .whileTrue(
+            Commands.run(() -> {
+                led.set(new StrobeAnimation((int) Color.kLimeGreen.red * 255, (int) Color.kLimeGreen.green * 255, (int) Color.kLimeGreen.blue * 255));
+            })
+        );
+
     // elevatorNetSafety.onTrue(
     // Commands.parallel(
     // elevator.setExtension(ElevatorConstants.AP), this.forceState(State.IDLE)));
@@ -350,7 +365,9 @@ public class Superstructure {
         .and(stateTriggers.get(State.ALGAE_READY).or(gripper::getDetected))
         .whileTrue(
             Commands.run(
-                () -> {led.strobe(Color.kPurple, Color.kOrange, 0.1);}
+                () -> {
+                    led.set(new StrobeAnimation((int) Color.kPurple.red*255,(int) Color.kPurple.green*255,(int) Color.kPurple.blue*255));
+                }
             )
         );
     
@@ -358,6 +375,19 @@ public class Superstructure {
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
         .onTrue(gripper.setVoltage(GripperConstants.AN));
+    
+    scoreRequest
+        .and(stateTriggers.get(State.ALGAE_READY).or(stateTriggers.get(State.ALGAE_CONFIRM_AN)))
+        .or(gripper::getDetected)
+        .and(setElevatorNet)
+        .whileTrue(
+            Commands.sequence(
+                elevator.setExtension(ElevatorConstants.AN).until(elevator::isNearExtension),
+                gripper.setVoltage(GripperConstants.AN).withTimeout(0.5),
+                this.forceState(State.IDLE),
+                led.setState(State.IDLE)
+            )
+        );
 
     // IDLE State Transitions (Starts: Robot idle, Ends: Various transitions based
     // on detections and requests)
@@ -671,18 +701,6 @@ public class Superstructure {
                 elevator.setExtension(ElevatorConstants.AP),
                 led.setState(State.ALGAE_CONFIRM_AP),
                 this.forceState(State.ALGAE_CONFIRM_AP)));
-               
-    scoreRequest
-        .and(stateTriggers.get(State.ALGAE_READY).or(stateTriggers.get(State.ALGAE_CONFIRM_AN)))
-        .or(gripper::getDetected)
-        .and(setElevatorNet)
-        .whileTrue(
-            Commands.sequence(
-                elevator.setExtension(ElevatorConstants.AN).until(elevator::isNearExtension),
-                gripper.setVoltage(GripperConstants.AN).withTimeout(0.5),
-                this.forceState(State.IDLE)
-            )
-        );
 
     stateTriggers
         .get(State.ALGAE_CONFIRM_AN)
