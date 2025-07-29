@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix.led.Animation;
+import com.ctre.phoenix.led.StrobeAnimation;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
@@ -37,9 +39,6 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.mechanism.LoggedMechanism2d;
 import org.littletonrobotics.junction.mechanism.LoggedMechanismLigament2d;
 import org.littletonrobotics.junction.mechanism.LoggedMechanismRoot2d;
-
-import com.ctre.phoenix.led.Animation;
-import com.ctre.phoenix.led.StrobeAnimation;
 
 public class Superstructure {
   public static enum CoralTarget {
@@ -128,11 +127,14 @@ public class Superstructure {
   private final Trigger setElevatorNet;
 
   @AutoLogOutput(key = "Superstructure/Auto Align is within Toleran")
-  private final Trigger autoAlignInTolerance;
+  private final Trigger autoAlignInTolerance = new Trigger(AutoAlign::setLED);
 
   @AutoLogOutput(key = "Superstructure/State")
   private State state = State.IDLE;
-  
+
+  @AutoLogOutput(key = "Superstructure/Elevator Check")
+  private final Trigger elevatorCheck;
+
   private State prevState = State.IDLE;
 
   private Map<State, Trigger> stateTriggers = new HashMap<State, Trigger>();
@@ -227,10 +229,18 @@ public class Superstructure {
                   2,
                   new Color8Bit(Color.kLightBlue)));
 
+  // Animations
+  private final Animation autoAlignTolerance =
+      new StrobeAnimation(
+          (int) Color.kLimeGreen.red * 255,
+          (int) Color.kLimeGreen.green * 255,
+          (int) Color.kLimeGreen.blue * 255);
+  private final Animation elevatorNet =
+      new StrobeAnimation(
+          (int) Color.kPurple.red * 255,
+          (int) Color.kPurple.green * 255,
+          (int) Color.kPurple.blue * 255);
 
-    // Animations
-    private final Animation autoAlignTolerance = new StrobeAnimation((int) Color.kLimeGreen.red * 255, (int) Color.kLimeGreen.green * 255, (int) Color.kLimeGreen.blue * 255);
-    private final Animation elevatorNet = new StrobeAnimation((int) Color.kPurple.red*255,(int) Color.kPurple.green*255,(int) Color.kPurple.blue*255);
   public Superstructure(
       Hopper hopper,
       Elevator elevator,
@@ -304,14 +314,15 @@ public class Superstructure {
       stateTriggers.put(state, new Trigger(() -> this.state == state && DriverStation.isEnabled()));
     }
 
-    autoAlignInTolerance = new Trigger(AutoAlign::setLED);
+    elevatorCheck =
+        (setElevatorNet.and(
+            stateTriggers.get(State.ALGAE_CONFIRM_AP).or(stateTriggers.get(State.ALGAE_READY))));
 
-    autoAlignInTolerance
-        .whileTrue(
-            Commands.run(() -> {
-                led.set(autoAlignTolerance);
-            })
-        );
+    autoAlignInTolerance.whileTrue(
+        Commands.run(
+            () -> {
+              led.set(autoAlignTolerance);
+            }));
 
     // elevatorNetSafety.onTrue(
     // Commands.parallel(
@@ -370,28 +381,13 @@ public class Superstructure {
         .whileTrue(
             Commands.run(
                 () -> {
-                    led.set(elevatorNet);
-                }
-            )
-        );
-    
+                  led.set(elevatorNet);
+                }));
+
     stateTriggers
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
         .onTrue(gripper.setVoltage(GripperConstants.AN));
-    
-    scoreRequest
-        .and(stateTriggers.get(State.ALGAE_READY).or(stateTriggers.get(State.ALGAE_CONFIRM_AN)))
-        .or(gripper::getDetected)
-        .and(setElevatorNet)
-        .whileTrue(
-            Commands.sequence(
-                elevator.setExtension(ElevatorConstants.AN).until(elevator::isNearExtension),
-                gripper.setVoltage(GripperConstants.AN).withTimeout(0.5),
-                this.forceState(State.IDLE),
-                led.setState(State.IDLE)
-            )
-        );
 
     // IDLE State Transitions (Starts: Robot idle, Ends: Various transitions based
     // on detections and requests)
@@ -787,21 +783,31 @@ public class Superstructure {
                               pose.get(), driverX.getAsDouble(), driverY.getAsDouble())]
                           .getTranslation()
                           .getDistance(pose.get().getTranslation())
-                      < 0.75))
+                      <= 0.75))
           .onTrue(Commands.sequence(Commands.waitSeconds(0.5), gripper.setSimDetected(true)));
 
       stateTriggers
           .get(State.ALGAE_CONFIRM_AN)
           .and(scoreRequest)
           .onTrue(Commands.sequence(Commands.waitSeconds(0.5), gripper.setSimDetected(false)));
-        
-        stateTriggers
-            .get(State.ELEV_MANUAL)
-            .and(setElevatorNet.negate())
-            .and(()->(elevator.getTargetExtensionMeters() == ElevatorConstants.AN))
-            .onTrue(
-                elevator.setExtension(ElevatorConstants.L1)
-            );
+
+      // Automating Algae
+      // TODO: Fix this buggy mess
+      scoreRequest
+          .and(
+              stateTriggers
+                  .get(State.ALGAE_CONFIRM_AN)
+                  .or(stateTriggers.get(State.ALGAE_READY))
+                  .or(gripper::getDetected))
+          .and(setElevatorNet)
+          .onTrue(
+              Commands.sequence(
+                  elevator.setExtension(ElevatorConstants.AN).until(elevator::isNearExtension),
+                  gripper.setVoltage(GripperConstants.AN).withTimeout(0.5),
+                  Commands.parallel(
+                      this.forceState(State.IDLE),
+                      led.setState(State.IDLE),
+                      gripper.setSimDetected(false))));
     }
   }
 

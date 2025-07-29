@@ -16,21 +16,12 @@ package frc.robot.subsystems.drive;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 
-import java.util.Arrays;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.littletonrobotics.junction.AutoLogOutput;
-import org.littletonrobotics.junction.Logger;
-
-import com.ctre.phoenix6.CANBus;
-
 import choreo.trajectory.SwerveSample;
+import com.ctre.phoenix6.CANBus;
 import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -48,6 +39,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -56,6 +48,13 @@ import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LoggedTunableNumber;
+import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
   // DriveConstants doesn't include these constants, so they are declared locally
@@ -100,8 +99,11 @@ public class Drive extends SubsystemBase {
   private PIDController autoXPID = new PIDController(XkP.getAsDouble(), 0.0, 0.0);
   private PIDController autoYPID = new PIDController(YkP.getAsDouble(), 0.0, 0.0);
   private PIDController autoHeadingPID = new PIDController(headingkP.getAsDouble(), 0.0, 0.0);
-  private final Rectangle2d redElevatorRec = new Rectangle2d(new Pose2d(10.05, 1.9, Rotation2d.kZero), 0.25, 4.021);
-  private final Rectangle2d bluElevatorRec = new Rectangle2d(new Pose2d(7.6, 6.125, Rotation2d.kZero), 0.25, 4.021);
+  private final Rectangle2d elevatorRec =
+      new Rectangle2d(AllianceFlipUtil.apply(FieldConstants.Barge.net), 0.25, 4.021);
+
+  private final Field2d displayField = new Field2d();
+
   public Drive(
       GyroIO gyroIO,
       ModuleIO flModuleIO,
@@ -134,6 +136,7 @@ public class Drive extends SubsystemBase {
     autoXPID.setP(XkP.getAsDouble());
     autoYPID.setP(YkP.getAsDouble());
     autoHeadingPID.setP(headingkP.getAsDouble());
+    Logger.recordOutput("Drive/Elevator Net Rec", elevatorRec);
   }
 
   @Override
@@ -203,7 +206,6 @@ public class Drive extends SubsystemBase {
       }
 
       Logger.recordOutput("Drive/Net", FieldConstants.Barge.net);
-      Logger.recordOutput("Drive/Net", AllianceFlipUtil.apply(FieldConstants.Barge.net));
     }
 
     // Update gyro alert
@@ -416,15 +418,8 @@ public class Drive extends SubsystemBase {
   }
 
   public boolean shouldSetElevatorNet() {
-    Translation2d poseTranslation = getPose().getTranslation();
-    if (DriverStation.getAlliance().isPresent()) {
-      if (DriverStation.getAlliance().get() == DriverStation.Alliance.Red) {
-        return redElevatorRec.contains(poseTranslation);
-      } else {
-        return bluElevatorRec.contains(poseTranslation);
-      }
-    } else {
-      return ((redElevatorRec.contains(poseTranslation))||(bluElevatorRec.contains(poseTranslation)));
-    }
+    Pose2d relativePose = getPose().relativeTo(FieldConstants.Barge.net);
+    return MathUtil.isNear(0.0, relativePose.getY(), 2.0)
+        && MathUtil.isNear(0.0, relativePose.getX(), 0.125);
   }
 }

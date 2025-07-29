@@ -19,7 +19,6 @@ import frc.robot.FieldConstants.CoralStation;
 import frc.robot.FieldConstants.Reef;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.util.AllianceFlipUtil;
-
 import java.util.Arrays;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -28,7 +27,7 @@ import org.littletonrobotics.junction.Logger;
 public class AutoAlign {
 
   private static Target currentTarget;
-  private static Boolean setLEDs;
+  private static Boolean setLEDs = false;
 
   public static Pose2d getBestLoader(Pose2d currentPose) {
     Pose2d loader =
