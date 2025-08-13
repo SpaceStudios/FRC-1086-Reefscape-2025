@@ -291,6 +291,7 @@ public class RobotContainer {
     autoChooser.addOption("RO to C", autoRoutines.ROtoC());
     autoChooser.addOption("LM to barge", autoRoutines.LMtobarge());
 
+    autoChooser.addOption("Automaker", AutoMaker.customCommand());
     // RobotModeTriggers.autonomous()
     // .whileTrue(Commands.defer(() -> autoChooser.get().asProxy(), Set.of()));
 
@@ -575,6 +576,9 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+    if (autoChooser.get() == AutoMaker.customCommand()) {
+      return AutoMaker.get();
+    }
     return autoChooser.get();
   }
 }

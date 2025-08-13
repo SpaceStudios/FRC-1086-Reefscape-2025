@@ -2,6 +2,8 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix.led.Animation;
 import com.ctre.phoenix.led.StrobeAnimation;
+
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
@@ -387,7 +389,23 @@ public class Superstructure {
     stateTriggers
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
+        .and(gripper::getDetected)
         .onTrue(gripper.setVoltage(GripperConstants.AN));
+
+    stateTriggers
+        .get(State.ELEV_MANUAL)
+        .and(scoreRequest)
+        .and(outtake::getDetected)
+        .onTrue(outtake.setVoltage(() -> {
+            if (MathUtil.isNear(ElevatorConstants.L1, elevator.getExtensionMeters(), 0.05)) {
+                return OuttakeConstants.L1;
+            } else if (MathUtil.isNear(ElevatorConstants.L2, elevator.getExtensionMeters(), 0.05) || MathUtil.isNear(ElevatorConstants.L3, elevator.getExtensionMeters(), 0.05)) {
+                return OuttakeConstants.L23;
+            } else if (MathUtil.isNear(ElevatorConstants.L4, elevator.getExtensionMeters(), 0.05)) {
+                return OuttakeConstants.L4;
+            }
+            return OuttakeConstants.L23;
+        }));
 
     // IDLE State Transitions (Starts: Robot idle, Ends: Various transitions based
     // on detections and requests)
