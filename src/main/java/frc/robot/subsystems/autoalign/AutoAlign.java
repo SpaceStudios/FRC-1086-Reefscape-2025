@@ -26,6 +26,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class AutoAlign {
 
+  private static Pose2d targetPose;
   private static Target currentTarget;
   private static Boolean setLEDs = false;
 
@@ -201,6 +202,7 @@ public class AutoAlign {
                           vxController.getSetpoint().position,
                           vyController.getSetpoint().position,
                           Rotation2d.fromRadians(headingController.getSetpoint().position)));
+                  targetPose = target.get();
                   // if (Constants.currentMode == Mode.SIM)
                   Logger.recordOutput("AutoAlign/Target Speeds", speeds);
                   return speeds;
@@ -275,7 +277,6 @@ public class AutoAlign {
             && MathUtil.isNear(
                 0.0, diff.getRotation().getRadians(), AutoAlignConstants.angularTolerance);
     Logger.recordOutput("AutoAlign/isInTolerance", threshold);
-    setLEDs = (threshold && currentTarget == Target.Reef);
     return threshold;
   }
 
@@ -336,9 +337,5 @@ public class AutoAlign {
 
   public static void setTarget(Target target) {
     currentTarget = target;
-  }
-
-  public static Boolean setLED() {
-    return setLEDs;
   }
 }

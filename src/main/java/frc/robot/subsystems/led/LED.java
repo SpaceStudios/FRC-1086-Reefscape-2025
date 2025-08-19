@@ -150,6 +150,10 @@ public class LED extends SubsystemBase {
               animation = LEDConstants.outtakeAnimation;
             case REV_FUNNEL:
               animation = LEDConstants.revFunnelAnimation;
+            case AutoAlgae:
+              animation = LEDConstants.autoAlgaeAnimation;
+            case AutoAlignInTolerance:
+              animation = LEDConstants.autoAlignTolerance;
             default:
               animation = LEDConstants.idleAnimation;
               break;

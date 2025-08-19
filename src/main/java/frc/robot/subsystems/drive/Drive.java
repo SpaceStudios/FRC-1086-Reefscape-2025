@@ -39,7 +39,6 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -48,6 +47,7 @@ import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LoggedTunableNumber;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -102,7 +102,7 @@ public class Drive extends SubsystemBase {
   private final Rectangle2d elevatorRec =
       new Rectangle2d(AllianceFlipUtil.apply(FieldConstants.Barge.net), 0.25, 4.021);
 
-  private final Field2d displayField = new Field2d();
+  private final ArrayList<Pose2d> activePoses = new ArrayList<Pose2d>();
 
   public Drive(
       GyroIO gyroIO,
@@ -210,6 +210,15 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+
+    // Debugging Elevator Net Poses
+    // if (Robot.isSimulation()) {
+    //   if (shouldSetElevatorNet() && !activePoses.contains(getPose())) {
+    //     activePoses.add(getPose());
+    //   }
+    //   Logger.recordOutput(
+    //       "Drive/Elevator Valid Heat Map", activePoses.toArray(new Pose2d[activePoses.size()]));
+    // }
   }
 
   /**
@@ -417,9 +426,18 @@ public class Drive extends SubsystemBase {
     };
   }
 
+  @AutoLogOutput(key = "Drive/Auto Set Net Pose")
+  private final Pose2d adjustedNetPosition =
+      AllianceFlipUtil.flip(
+          new Pose2d(
+              FieldConstants.Barge.net.getX() - 0.5,
+              FieldConstants.Barge.net.getY(),
+              FieldConstants.Barge.net.getRotation()));
+
   public boolean shouldSetElevatorNet() {
-    Pose2d relativePose = getPose().relativeTo(FieldConstants.Barge.net);
+    Pose2d relativePose = getPose().relativeTo(adjustedNetPosition);
     return MathUtil.isNear(0.0, relativePose.getY(), 2.0)
-        && MathUtil.isNear(0.0, relativePose.getX(), 0.125);
+        && MathUtil.isNear(0.0, relativePose.getX(), 0.5)
+        && MathUtil.isNear(0.0, relativePose.getRotation().getRadians(), Math.PI / 4);
   }
 }

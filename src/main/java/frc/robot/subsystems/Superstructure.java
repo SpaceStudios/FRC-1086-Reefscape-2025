@@ -2,7 +2,6 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix.led.Animation;
 import com.ctre.phoenix.led.StrobeAnimation;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -74,7 +73,9 @@ public class Superstructure {
     IDLE,
     ELEV_MANUAL,
     REV_FUNNEL,
-    SCORE
+    SCORE,
+    AutoAlgae,
+    AutoAlignInTolerance
   }
 
   private final Supplier<Pose2d> pose;
@@ -129,7 +130,7 @@ public class Superstructure {
   private final Trigger setElevatorNet;
 
   @AutoLogOutput(key = "Superstructure/Auto Align is within Toleran")
-  private final Trigger autoAlignInTolerance = new Trigger(AutoAlign::setLED);
+  private final Trigger autoAlignInTolerance;
 
   @AutoLogOutput(key = "Superstructure/State")
   private State state = State.IDLE;
@@ -231,18 +232,6 @@ public class Superstructure {
                   2,
                   new Color8Bit(Color.kLightBlue)));
 
-  // Animations
-  private final Animation autoAlignTolerance =
-      new StrobeAnimation(
-          (int) Color.kLimeGreen.red * 255,
-          (int) Color.kLimeGreen.green * 255,
-          (int) Color.kLimeGreen.blue * 255);
-  private final Animation elevatorNet =
-      new StrobeAnimation(
-          (int) Color.kPurple.red * 255,
-          (int) Color.kPurple.green * 255,
-          (int) Color.kPurple.blue * 255);
-
   public Superstructure(
       Hopper hopper,
       Elevator elevator,
@@ -306,6 +295,7 @@ public class Superstructure {
 
     this.algaeTarget = ElevatorConstants.A3;
 
+    autoAlignInTolerance = new Trigger(() -> (AutoAlign.isInToleranceCoral(pose.get(), -driverX.getAsDouble(), -driverY.getAsDouble())));
     // final Trigger elevatorNetSafety =
     // new Trigger(
     // () ->
@@ -320,10 +310,12 @@ public class Superstructure {
         (setElevatorNet.and(
             stateTriggers.get(State.ALGAE_CONFIRM_AP).or(stateTriggers.get(State.ALGAE_READY))));
 
-    autoAlignInTolerance.whileTrue(
+    autoAlignInTolerance
+        .and(outtake::getDetected)
+        .whileTrue(
         Commands.run(
             () -> {
-              led.set(autoAlignTolerance);
+              led.setState(State.AutoAlignInTolerance);
             }));
 
     // elevatorNetSafety.onTrue(
@@ -379,11 +371,11 @@ public class Superstructure {
                 led.setState(State.CORAL_PREINTAKE), this.forceState(State.CORAL_PREINTAKE)));
 
     setElevatorNet
-        .and(stateTriggers.get(State.ALGAE_READY).or(gripper::getDetected))
+        .and(stateTriggers.get(State.IDLE).or(gripper::getDetected))
         .whileTrue(
             Commands.run(
                 () -> {
-                  led.set(elevatorNet);
+                  led.setState(State.AutoAlgae);
                 }));
 
     stateTriggers
@@ -396,16 +388,22 @@ public class Superstructure {
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
         .and(outtake::getDetected)
-        .onTrue(outtake.setVoltage(() -> {
-            if (MathUtil.isNear(ElevatorConstants.L1, elevator.getExtensionMeters(), 0.05)) {
-                return OuttakeConstants.L1;
-            } else if (MathUtil.isNear(ElevatorConstants.L2, elevator.getExtensionMeters(), 0.05) || MathUtil.isNear(ElevatorConstants.L3, elevator.getExtensionMeters(), 0.05)) {
-                return OuttakeConstants.L23;
-            } else if (MathUtil.isNear(ElevatorConstants.L4, elevator.getExtensionMeters(), 0.05)) {
-                return OuttakeConstants.L4;
-            }
-            return OuttakeConstants.L23;
-        }));
+        .onTrue(
+            outtake.setVoltage(
+                () -> {
+                  if (MathUtil.isNear(ElevatorConstants.L1, elevator.getExtensionMeters(), 0.05)) {
+                    return OuttakeConstants.L1;
+                  } else if (MathUtil.isNear(
+                          ElevatorConstants.L2, elevator.getExtensionMeters(), 0.05)
+                      || MathUtil.isNear(
+                          ElevatorConstants.L3, elevator.getExtensionMeters(), 0.05)) {
+                    return OuttakeConstants.L23;
+                  } else if (MathUtil.isNear(
+                      ElevatorConstants.L4, elevator.getExtensionMeters(), 0.05)) {
+                    return OuttakeConstants.L4;
+                  }
+                  return OuttakeConstants.L23;
+                }));
 
     // IDLE State Transitions (Starts: Robot idle, Ends: Various transitions based
     // on detections and requests)
