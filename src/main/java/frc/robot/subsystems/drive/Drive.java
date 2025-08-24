@@ -428,11 +428,10 @@ public class Drive extends SubsystemBase {
 
   @AutoLogOutput(key = "Drive/Auto Set Net Pose")
   private final Pose2d adjustedNetPosition =
-      AllianceFlipUtil.flip(
-          new Pose2d(
-              FieldConstants.Barge.net.getX() - 0.5,
-              FieldConstants.Barge.net.getY(),
-              FieldConstants.Barge.net.getRotation()));
+      new Pose2d(
+          FieldConstants.Barge.net.getX() - 0.5,
+          FieldConstants.Barge.net.getY(),
+          AllianceFlipUtil.apply(FieldConstants.Barge.net.getRotation()));
 
   public boolean shouldSetElevatorNet() {
     Pose2d relativePose = getPose().relativeTo(adjustedNetPosition);

@@ -1,7 +1,5 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix.led.Animation;
-import com.ctre.phoenix.led.StrobeAnimation;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -295,7 +293,7 @@ public class Superstructure {
 
     this.algaeTarget = ElevatorConstants.A3;
 
-    autoAlignInTolerance = new Trigger(() -> (AutoAlign.isInToleranceCoral(pose.get(), -driverX.getAsDouble(), -driverY.getAsDouble())));
+    autoAlignInTolerance = new Trigger(() -> (AutoAlign.isInToleranceCoral(pose.get(), 0.0, 0.0)));
     // final Trigger elevatorNetSafety =
     // new Trigger(
     // () ->
@@ -309,15 +307,6 @@ public class Superstructure {
     elevatorCheck =
         (setElevatorNet.and(
             stateTriggers.get(State.ALGAE_CONFIRM_AP).or(stateTriggers.get(State.ALGAE_READY))));
-
-    autoAlignInTolerance
-        .and(outtake::getDetected)
-        .whileTrue(
-        Commands.run(
-            () -> {
-              led.setState(State.AutoAlignInTolerance);
-            }));
-
     // elevatorNetSafety.onTrue(
     // Commands.parallel(
     // elevator.setExtension(ElevatorConstants.AP), this.forceState(State.IDLE)));
@@ -370,14 +359,6 @@ public class Superstructure {
             Commands.parallel(
                 led.setState(State.CORAL_PREINTAKE), this.forceState(State.CORAL_PREINTAKE)));
 
-    setElevatorNet
-        .and(stateTriggers.get(State.IDLE).or(gripper::getDetected))
-        .whileTrue(
-            Commands.run(
-                () -> {
-                  led.setState(State.AutoAlgae);
-                }));
-
     stateTriggers
         .get(State.ELEV_MANUAL)
         .and(scoreRequest)
@@ -416,7 +397,7 @@ public class Superstructure {
                     .andThen(elevator.reset())
                     .onlyIf(() -> !elevManualRequest.getAsBoolean()),
                 gripper.setVoltage(0)));
-
+    
     stateTriggers
         .get(State.IDLE)
         .and(outtake::getDetected)
@@ -494,7 +475,8 @@ public class Superstructure {
                 outtake.setVoltage(() -> 0),
                 hopper.setVoltage(() -> 0),
                 led.setState(State.CORAL_READY),
-                this.forceState(State.CORAL_READY)));
+                this.forceState(State.CORAL_READY),
+                elevator.setExtension(CoralTarget.L1.elevatorHeight)));
 
     stateTriggers
         .get(State.CORAL_READY)
@@ -824,6 +806,20 @@ public class Superstructure {
                       this.forceState(State.IDLE),
                       led.setState(State.IDLE),
                       gripper.setSimDetected(false))));
+
+      setElevatorNet.onTrue(
+          Commands.run(
+              () -> {
+                led.setState(State.AutoAlgae);
+              }));
+
+      //   setElevatorNet.whileTrue(led.set(LEDConstants.stupidTestAnimation));
+
+      autoAlignInTolerance.onTrue(
+          Commands.run(
+              () -> {
+                led.setState(State.AutoAlignInTolerance);
+              }));
     }
   }
 

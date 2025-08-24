@@ -235,8 +235,10 @@ public class RobotContainer {
                         (AutoAlign.closerIntake(
                                 drive.getPose(), -driver.getLeftY(), -driver.getLeftX())
                             == IntakeLocation.SOURCE)),
-            driver.b(),
-            driver.x(),
+            driver.x()
+                .and(outtake::getDetected),
+            driver.x()
+                .and(gripper::getDetected),
             driver
                 .leftTrigger()
                 .and(

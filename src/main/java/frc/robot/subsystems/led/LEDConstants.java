@@ -50,7 +50,7 @@ public class LEDConstants {
           length);
 
   public static final Animation endAnimation = new RainbowAnimation(1, 0.5, LEDConstants.length);
-  public static final Animation idleAnimation = new SingleFadeAnimation(0, 0, 255, 0, 0.85, length);
+  public static final Animation idleAnimation = new SingleFadeAnimation(255, 0, 0, 0, 0.85, length);
   public static final Animation coralReadyAnimation =
       new SingleFadeAnimation(255, 255, 255, 0, 0, LEDConstants.length);
   public static final Animation algaeReadyAnimation =
@@ -58,17 +58,23 @@ public class LEDConstants {
   public static final Animation climbedAnimation =
       new SingleFadeAnimation(255, 255, 0, 0, 0, LEDConstants.length);
 
-  public static final Animation autoAlgaeAnimation =
-      new StrobeAnimation(
-          (int) Color.kPurple.red * 255,
-          (int) Color.kPurple.green * 255,
-          (int) Color.kPurple.blue * 255);
+  //   public static final Animation autoAlgaeAnimation =
+  //       new StrobeAnimation(
+  //           (int) Color.kPurple.red * 255,
+  //           (int) Color.kPurple.green * 255,
+  //           (int) Color.kPurple.blue * 255);
 
-    public static final Animation autoAlignTolerance =
-        new StrobeAnimation(
-            (int) Color.kLimeGreen.red * 255,
-            (int) Color.kLimeGreen.green * 255,
-            (int) Color.kLimeGreen.blue * 255);
+  public static final Animation autoAlgaeAnimation =
+      new SingleFadeAnimation(0, 255, 0, 0, 2.0, length);
+
+  public static final Animation stupidTestAnimation =
+      new SingleFadeAnimation(0, 255, 0, 0, 2.0, length);
+
+  public static final Animation autoAlignTolerance =
+      new StrobeAnimation(
+          (int) Color.kLimeGreen.red * 255,
+          (int) Color.kLimeGreen.green * 255,
+          (int) Color.kLimeGreen.blue * 255);
 
   public static final double waveExponent = 0.4;
 }

@@ -8,7 +8,9 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.Superstructure.State;
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class LED extends SubsystemBase {
@@ -21,6 +23,12 @@ public class LED extends SubsystemBase {
   private Animation disabledAnimation;
 
   private Animation animation;
+
+  @AutoLogOutput(key = "LED/Auto Align")
+  private Trigger inTolerance = new Trigger(() -> (state == State.AutoAlignInTolerance));
+
+  @AutoLogOutput(key = "LED/Auto Algae")
+  private Trigger autoAlgae = new Trigger(() -> (state == State.AutoAlgae));
 
   public LED(LEDIO io) {
     this.io = io;
@@ -43,6 +51,14 @@ public class LED extends SubsystemBase {
 
   @Override
   public void periodic() {
+    Logger.recordOutput("Auto/Align", (state == State.AutoAlignInTolerance));
+    Logger.recordOutput("Auto/Algae", (state == State.AutoAlgae));
+    if (state == State.AutoAlignInTolerance) {
+      System.out.println("Autoalign in Tolerance");
+    }
+    if (state == State.AutoAlgae) {
+      System.out.println("AutoAlgae");
+    }
     io.updateInputs(inputs);
     Logger.processInputs("LED", inputs);
   }
